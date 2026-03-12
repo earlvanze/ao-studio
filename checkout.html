@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Checkout Start | Autonomous Ops Studio</title>
+  <link rel="stylesheet" href="./css/styles.css" />
+</head>
+<body>
+<header>
+  <div class="container nav">
+    <div class="brand">Autonomous Ops Studio</div>
+    <div class="nav-links">
+      <a href="./index.html">Home</a>
+      <a href="./package.html">Package</a>
+      <a href="./deployment.html">Deployment</a>
+      <a href="./audit.html">Audit</a>
+    </div>
+  </div>
+</header>
+
+<main class="section">
+  <div class="container">
+    <div class="card" style="max-width:700px;margin:0 auto;">
+      <h1>Secure checkout to get your business assistant set up</h1>
+      <p class="small">You will be redirected to Stripe’s hosted checkout page. Card details do not touch this website.</p>
+      <ul>
+        <li>Package: Autonomous Ops Studio Implementation Package</li>
+        <li>Amount: $2,997 USD</li>
+        <li>Target timeline: 14 days</li>
+        <li>Outcome: your business gets a dedicated assistant setup designed around your operations</li>
+      </ul>
+      <div class="card" style="margin: 20px 0;">
+        <h3>Before you pay</h3>
+        <ul>
+          <li>Ongoing management is $500/month after implementation</li>
+          <li>The client also pays for the AI model separately</li>
+          <li>Typical model options are ChatGPT Plus/Pro, Claude Code Pro/Max, or Gemini</li>
+          <li>Some businesses only need the more expensive model during the setup month, around $200, then can move closer to $20/month later</li>
+          <li>Earl covers server costs; client covers model costs</li>
+        </ul>
+      </div>
+      <div class="card" style="margin: 20px 0;">
+        <h3>What happens after payment</h3>
+        <ul>
+          <li>You land on the success page and book onboarding through Calendly.com/earlco</li>
+          <li>Earl confirms your first use case, access needs, communication channels, and model choice</li>
+          <li>Then setup, organization, and launch begin</li>
+        </ul>
+      </div>
+      <p>
+        <button class="btn primary" id="start-checkout">Start Checkout</button>
+        <a class="btn secondary" data-calendly-btn="true" href="#">Prefer a free consultation first</a>
+      </p>
+      <p class="small" id="checkout-status"></p>
+    </div>
+  </div>
+</main>
+
+<footer><div class="container">Need a walkthrough first? <a data-calendly-btn="true" href="#">Book a call</a></div></footer>
+<script src="./js/config.js"></script>
+<script src="./js/main.js"></script>
+</body>
+</html>
