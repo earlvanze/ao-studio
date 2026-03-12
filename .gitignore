@@ -1,0 +1,9 @@
+# Local temp files
+site/navigation_marker.tmp
+
+# Supabase local state
+supabase/.temp/
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
