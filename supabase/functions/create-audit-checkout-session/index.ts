@@ -1,5 +1,6 @@
 // Supabase Edge Function: create-audit-checkout-session
-// Handles real audit intake upload + Stripe checkout creation ($20)
+// Safe public audit intake: creates checkout only.
+// No anonymous file upload is accepted before payment.
 // Required secrets:
 // STRIPE_SECRET_KEY, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
 
@@ -18,8 +19,17 @@ const CORS_HEADERS = {
 
 function toMetadataValue(v: unknown): string {
   if (v === null || v === undefined) return "";
-  const s = String(v);
+  const s = String(v).trim();
   return s.length > 500 ? s.slice(0, 500) : s;
+}
+
+function isSafeHttpUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
 }
 
 Deno.serve(async (req) => {
@@ -32,20 +42,19 @@ Deno.serve(async (req) => {
       return new Response("Method not allowed", { status: 405, headers: CORS_HEADERS });
     }
 
-    const form = await req.formData();
-    const email = String(form.get("email") || "").trim();
-    const company = String(form.get("company") || "").trim();
-    const notes = String(form.get("notes") || "").trim();
-    const successUrl = String(form.get("successUrl") || "").trim();
-    const cancelUrl = String(form.get("cancelUrl") || "").trim();
-    const file = form.get("export");
+    const body = await req.json();
+    const email = toMetadataValue(body.email);
+    const company = toMetadataValue(body.company);
+    const notes = toMetadataValue(body.notes);
+    const successUrl = String(body.successUrl || "").trim();
+    const cancelUrl = String(body.cancelUrl || "").trim();
 
-    if (!email || !successUrl || !cancelUrl) {
+    if (!email || !notes || !successUrl || !cancelUrl) {
       return Response.json({ error: "Missing required fields" }, { status: 400, headers: CORS_HEADERS });
     }
 
-    if (!(file instanceof File) || file.size === 0) {
-      return Response.json({ error: "Missing export file" }, { status: 400, headers: CORS_HEADERS });
+    if (!isSafeHttpUrl(successUrl) || !isSafeHttpUrl(cancelUrl)) {
+      return Response.json({ error: "Invalid redirect URL" }, { status: 400, headers: CORS_HEADERS });
     }
 
     const supabase = createClient(
@@ -54,30 +63,14 @@ Deno.serve(async (req) => {
     );
 
     const auditRequestId = crypto.randomUUID();
-    const sanitizedName = (file.name || "upload.bin").replace(/[^a-zA-Z0-9._-]/g, "_");
-    const storagePath = `${auditRequestId}/${Date.now()}-${sanitizedName}`;
-
-    const { error: uploadError } = await supabase.storage
-      .from("audit_uploads")
-      .upload(storagePath, file, {
-        upsert: false,
-        contentType: file.type || "application/octet-stream"
-      });
-
-    if (uploadError) {
-      return Response.json({ error: `Upload failed: ${uploadError.message}` }, { status: 500, headers: CORS_HEADERS });
-    }
-
     const metadata: Record<string, string> = {
       flow: "audit",
       auditType: "ai_opportunity_audit",
       auditRequestId: toMetadataValue(auditRequestId),
-      email: toMetadataValue(email),
-      company: toMetadataValue(company || ""),
-      fileName: toMetadataValue(file.name),
-      fileType: toMetadataValue(file.type || "application/octet-stream"),
-      fileSize: toMetadataValue(file.size),
-      notes: toMetadataValue(notes || "")
+      email,
+      company,
+      notes,
+      materialsCollection: "after_payment"
     };
 
     const session = await stripe.checkout.sessions.create({
@@ -90,7 +83,7 @@ Deno.serve(async (req) => {
             unit_amount: 2000,
             product_data: {
               name: "AI Opportunity Audit",
-              description: "Upload + analysis + recommendations report"
+              description: "Payment-first audit intake with materials collected after checkout"
             }
           },
           quantity: 1
@@ -106,11 +99,11 @@ Deno.serve(async (req) => {
       email,
       company: company || null,
       notes: notes || null,
-      file_name: file.name,
-      file_type: file.type || "application/octet-stream",
-      file_size: file.size,
+      file_name: "pending-after-payment",
+      file_type: null,
+      file_size: null,
       storage_bucket: "audit_uploads",
-      storage_path: storagePath,
+      storage_path: `${auditRequestId}/pending-after-payment`,
       stripe_checkout_session_id: session.id,
       amount_usd: 20,
       currency: "usd",

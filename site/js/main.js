@@ -2,6 +2,10 @@ const cfg = window.__ZHC_CONFIG__ || {};
 
 function qs(id) { return document.querySelector(id); }
 
+function pageUrl(path) {
+  return new URL(path, window.location.href).toString();
+}
+
 async function captureLead(payload) {
   if (!cfg.supabaseUrl || !cfg.supabaseAnonKey) {
     return { ok: false, skipped: true, reason: "Supabase public config missing" };
@@ -130,8 +134,8 @@ function wireCheckoutStart() {
         packageSlug: cfg.packageSlug,
         packageName: cfg.packageName,
         amountUsd: cfg.packagePriceUsd,
-        successUrl: `${window.location.origin}/success.html`,
-        cancelUrl: `${window.location.origin}/checkout.html`,
+        successUrl: pageUrl("success.html"),
+        cancelUrl: pageUrl("checkout.html"),
         metadata: { flow: "main_package" }
       });
 
@@ -152,13 +156,12 @@ function wireAuditForm() {
     e.preventDefault();
 
     const data = new FormData(form);
-    const file = data.get("export");
     const email = (data.get("email") || "").toString().trim();
     const company = (data.get("company") || "").toString().trim();
     const notes = (data.get("notes") || "").toString().trim();
 
-    if (!(file instanceof File) || !file.size) {
-      status.textContent = "Please attach an export file.";
+    if (!email || !notes) {
+      status.textContent = "Please provide your email and the workflow you want reviewed.";
       return;
     }
 
@@ -170,7 +173,7 @@ function wireAuditForm() {
     const submitBtn = form.querySelector('button[type="submit"]');
     if (submitBtn) submitBtn.disabled = true;
 
-    status.textContent = `Uploading export and creating $${cfg.auditPriceUsd} checkout...`;
+    status.textContent = `Creating $${cfg.auditPriceUsd} audit checkout...`;
 
     try {
       await captureLead({
@@ -179,31 +182,28 @@ function wireAuditForm() {
         notes,
         cta_type: "audit_intake",
         metadata: {
-          fileName: file.name,
-          fileType: file.type || null,
-          fileSize: file.size,
           auditSlug: cfg.auditSlug,
-          auditDeliveryWindow: cfg.auditDeliveryWindow
+          auditDeliveryWindow: cfg.auditDeliveryWindow,
+          uploadFlow: "disabled_until_after_payment"
         }
       });
 
-      const auditPayload = new FormData();
-      auditPayload.append("email", email);
-      if (company) auditPayload.append("company", company);
-      if (notes) auditPayload.append("notes", notes);
-      auditPayload.append("export", file);
-      auditPayload.append("successUrl", `${window.location.origin}/success.html`);
-      auditPayload.append("cancelUrl", `${window.location.origin}/audit.html`);
-
-      const auditResp = await fetch(`${cfg.edgeBaseUrl}/create-audit-checkout-session`, {
-        method: "POST",
-        body: auditPayload
+      const auditData = await createCheckoutSession({
+        packageSlug: cfg.auditSlug,
+        packageName: cfg.auditName,
+        amountUsd: cfg.auditPriceUsd,
+        successUrl: pageUrl("success.html"),
+        cancelUrl: pageUrl("audit.html"),
+        customerEmail: email,
+        metadata: {
+          flow: "audit",
+          auditType: "ai_opportunity_audit",
+          company,
+          notes,
+          deliveryWindow: cfg.auditDeliveryWindow,
+          materialsCollection: "after_payment"
+        }
       });
-
-      const auditData = await auditResp.json();
-      if (!auditResp.ok || !auditData.url) {
-        throw new Error(auditData.error || `HTTP ${auditResp.status}`);
-      }
 
       window.location.href = auditData.url;
     } catch (err) {
