@@ -16,7 +16,7 @@ window.__ZHC_CONFIG__ = {
   edgeBaseUrl: "${PUBLIC_EDGE_BASE_URL}",
   packageSlug: "autonomous-ops-consulting-mvp",
   packageName: "Autonomous Ops Studio - Done-for-You MVP",
-  packagePriceUsd: 2997,
+  packagePriceUsd: 1997,
   auditSlug: "ai-opportunity-audit",
   auditName: "AI Opportunity Audit",
   auditPriceUsd: ${PUBLIC_AUDIT_PRICE_USD:-20},

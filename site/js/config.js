@@ -6,7 +6,7 @@ window.__ZHC_CONFIG__ = {
 
   packageSlug: "autonomous-ops-consulting-mvp",
   packageName: "Autonomous Ops Studio - Done-for-You MVP",
-  packagePriceUsd: 2997,
+  packagePriceUsd: 1997,
 
   auditSlug: "ai-opportunity-audit",
   auditName: "AI Opportunity Audit",
